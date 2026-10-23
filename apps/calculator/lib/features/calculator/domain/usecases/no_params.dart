@@ -1,5 +1,5 @@
-/// Empty class used as a placeholder for use cases that don't accept parameters.
-/// Ensures type safety in the use case generic interface.
+/// Marker parameter for use cases that need no input.
 class NoParams {
+  /// Creates the marker.
   const new();
 }

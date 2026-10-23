@@ -16,6 +16,7 @@ import 'package:core/core.dart';
 
 /// Owns calculator interaction state and coordinates domain use cases.
 class CalculatorBloc extends Bloc<CalculatorEvent, CalculatorState> {
+  /// Creates the bloc from its domain use cases.
   new({
     required this._evaluateExpression,
     required this._loadHistory,
@@ -38,9 +39,6 @@ class CalculatorBloc extends Bloc<CalculatorEvent, CalculatorState> {
     on<EvaluateExpression>(_onEvaluate);
     on<LoadCalculation>(_onLoad);
     on<ClearHistory>(_onClearHistory);
-    on<SetAngleMode>(
-      (event, emit) => emit(state.copyWith(angleMode: event.mode)),
-    );
   }
   final usecase.EvaluateExpression _evaluateExpression;
   final usecase.LoadHistory _loadHistory;
@@ -93,14 +91,17 @@ class CalculatorBloc extends Bloc<CalculatorEvent, CalculatorState> {
   ) async {
     if (state.expression.trim().isEmpty) {
       emit(
-        state.copyWith(errorMessage: 'Enter an expression.', clearResult: true),
+        state.copyWith(
+          errorMessage: const EmptyExpressionFailure().message,
+          clearResult: true,
+        ),
       );
       return;
     }
     switch (await _evaluateExpression(
       usecase.EvaluationParams(
         expression: state.expression,
-        angleMode: state.angleMode,
+        angleMode: event.angleMode,
       ),
     )) {
       case Ok(:final value):
@@ -117,7 +118,7 @@ class CalculatorBloc extends Bloc<CalculatorEvent, CalculatorState> {
       case Err(:final error):
         emit(
           state.copyWith(
-            errorMessage: _message(error),
+            errorMessage: error.message,
             clearResult: true,
             justEvaluated: false,
           ),
@@ -140,12 +141,4 @@ class CalculatorBloc extends Bloc<CalculatorEvent, CalculatorState> {
     await _clearHistory(const NoParams());
     emit(state.copyWith(history: const []));
   }
-
-  String _message(CalculatorFailure failure) => switch (failure) {
-    DivisionByZeroFailure() => 'Cannot divide by zero.',
-    EmptyExpressionFailure() => 'Enter an expression.',
-    DomainFailure() => 'That operation is undefined for this value.',
-    StorageFailure() => 'Could not save history.',
-    _ => 'Invalid expression.',
-  };
 }

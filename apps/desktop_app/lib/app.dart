@@ -19,19 +19,29 @@ class _DesktopAppState extends State<DesktopApp> {
   final _settings = _ThemeSettings();
 
   late final AppRouter _router = AppRouter(
-    homeBuilder: (context, state) => ListenableBuilder(
-      listenable: _settings,
-      builder: (context, _) => DesignSystemGallery(
-        title: AppLocalizations.of(context).galleryTitle,
-        themeMode: _settings.mode,
-        onThemeModeChanged: _settings.setMode,
-        colorVariant: _settings.variant,
-        onColorVariantChanged: _settings.setVariant,
-        onOpenDetails: () => context.pushRoute(AppRoute.details),
+    pages: [
+      AppPage(
+        route: _DesktopRoutes.home,
+        builder: (context, state) => ListenableBuilder(
+          listenable: _settings,
+          builder: (context, _) => DesignSystemGallery(
+            title: AppLocalizations.of(context).galleryTitle,
+            themeMode: _settings.mode,
+            onThemeModeChanged: _settings.setMode,
+            colorVariant: _settings.variant,
+            onColorVariantChanged: _settings.setVariant,
+            onOpenDetails: () => context.pushRoute(_DesktopRoutes.details),
+          ),
+        ),
       ),
-    ),
-    detailsBuilder: (context, state) =>
-        GalleryDetailPage(title: AppLocalizations.of(context).detailsTitle),
+    ],
+    routes: [
+      AppPage(
+        route: _DesktopRoutes.details,
+        builder: (context, state) =>
+            GalleryDetailPage(title: AppLocalizations.of(context).detailsTitle),
+      ),
+    ],
   );
 
   @override
@@ -82,6 +92,12 @@ class _DesktopAppState extends State<DesktopApp> {
       },
     );
   }
+}
+
+/// The destinations registered by the gallery host.
+abstract final class _DesktopRoutes {
+  static const AppRoute home = AppRoute(path: '/', name: 'gallery');
+  static const AppRoute details = AppRoute(path: '/details', name: 'details');
 }
 
 class _ThemeSettings extends ChangeNotifier {

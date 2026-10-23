@@ -4,16 +4,15 @@ import 'package:calculator/features/calculator/domain/repositories/calculator_re
 import 'package:calculator/features/calculator/domain/usecases/no_params.dart';
 import 'package:core/core.dart';
 
-/// Use case for loading the calculation history from persistent storage.
+/// Reads the persisted calculation history, newest first.
 class LoadHistory {
-  new(this.repository);
+  /// Creates the use case over [repository].
+  const new(this.repository);
+
+  /// The repository that owns history persistence.
   final CalculatorRepository repository;
 
-  /// Returns [Right] (Ok) on success, or [Left] (Err) on error.
-  /// Using core's [Result] class instead of dartz [Either].
-  Future<Result<List<Calculation>, CalculatorFailure>> call(
-    NoParams params,
-  ) async {
-    return repository.loadHistory();
-  }
+  /// Loads every stored calculation.
+  Future<Result<List<Calculation>, CalculatorFailure>> call(NoParams params) =>
+      repository.loadHistory();
 }

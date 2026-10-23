@@ -4,9 +4,11 @@ import 'package:calculator/features/calculator/domain/failures.dart';
 import 'package:calculator/features/calculator/domain/repositories/calculator_repository.dart';
 import 'package:core/core.dart';
 
-/// Repository implementation joining core math with local history storage.
+/// Repository implementation joining core's math engine with local storage.
 class CalculatorRepositoryImpl implements CalculatorRepository {
+  /// Creates the repository over `local`.
   new(this._local);
+
   final CalculatorLocalDataSource _local;
 
   @override
@@ -25,8 +27,8 @@ class CalculatorRepositoryImpl implements CalculatorRepository {
   Future<Result<List<Calculation>, CalculatorFailure>> loadHistory() async {
     try {
       return Result.ok(await _local.loadHistory());
-    } catch (_) {
-      return Result.err(StorageFailure());
+    } on Object catch (_) {
+      return const Result.err(StorageFailure());
     }
   }
 
@@ -43,8 +45,8 @@ class CalculatorRepositoryImpl implements CalculatorRepository {
         ].take(CalculatorLocalDataSource.maxEntries).toList(),
       );
       return const Result.ok(null);
-    } catch (_) {
-      return Result.err(StorageFailure());
+    } on Object catch (_) {
+      return const Result.err(StorageFailure());
     }
   }
 
@@ -53,16 +55,16 @@ class CalculatorRepositoryImpl implements CalculatorRepository {
     try {
       await _local.clearHistory();
       return const Result.ok(null);
-    } catch (_) {
-      return Result.err(StorageFailure());
+    } on Object catch (_) {
+      return const Result.err(StorageFailure());
     }
   }
 
   CalculatorFailure _mapMathFailure(MathErrorCode code) => switch (code) {
-    MathErrorCode.emptyExpression => EmptyExpressionFailure(),
-    MathErrorCode.divisionByZero => DivisionByZeroFailure(),
+    MathErrorCode.emptyExpression => const EmptyExpressionFailure(),
+    MathErrorCode.divisionByZero => const DivisionByZeroFailure(),
     MathErrorCode.domainError ||
-    MathErrorCode.invalidFactorial => DomainFailure(),
-    _ => ParseFailure(),
+    MathErrorCode.invalidFactorial => const DomainFailure(),
+    _ => const ParseFailure(),
   };
 }

@@ -1,55 +1,56 @@
-/// Sealed class for all calculator-related failures.
-/// Domain layer - pure Dart, no Flutter imports.
+/// Base class for every calculator failure.
+///
+/// Each concrete failure owns the message shown to the user, so the
+/// presentation layer never has to switch on a runtime type.
 sealed class CalculatorFailure {
+  /// Creates a failure.
   const new();
 
-  List<Object> get equality => [runtimeType, toString()];
-
-  @override
-  String toString() => _failureToString();
-
-  String _failureToString() {
-    switch (runtimeType) {
-      case ParseFailure:
-        return 'Parse failure';
-      case DivisionByZeroFailure:
-        return 'Division by zero';
-      case StorageFailure:
-        return 'Storage error';
-      case EmptyExpressionFailure:
-        return 'Empty expression';
-      default:
-        return 'Unknown calculator failure';
-    }
-  }
+  /// The user-facing explanation of what went wrong.
+  String get message;
 }
 
-/// Failure when the expression cannot be parsed/evaluated.
-class ParseFailure extends CalculatorFailure {
+/// The typed expression could not be parsed.
+final class ParseFailure extends CalculatorFailure {
+  /// Creates the failure.
+  const new();
+
   @override
-  String toString() => 'ParseFailure';
+  String get message => 'Check the expression and try again.';
 }
 
-/// Failure when division by zero occurs.
-class DivisionByZeroFailure extends CalculatorFailure {
+/// The expression divided by zero.
+final class DivisionByZeroFailure extends CalculatorFailure {
+  /// Creates the failure.
+  const new();
+
   @override
-  String toString() => 'DivisionByZeroFailure';
+  String get message => 'Cannot divide by zero.';
 }
 
-/// Failure when storage operations fail.
-class StorageFailure extends CalculatorFailure {
+/// History could not be read or written.
+final class StorageFailure extends CalculatorFailure {
+  /// Creates the failure.
+  const new();
+
   @override
-  String toString() => 'StorageFailure';
+  String get message => 'Could not save history.';
 }
 
-/// Failure when the expression is empty.
-class EmptyExpressionFailure extends CalculatorFailure {
+/// Nothing was entered before evaluating.
+final class EmptyExpressionFailure extends CalculatorFailure {
+  /// Creates the failure.
+  const new();
+
   @override
-  String toString() => 'EmptyExpressionFailure';
+  String get message => 'Enter an expression.';
 }
 
-/// Failure when an operation has no value in the real-number domain.
-class DomainFailure extends CalculatorFailure {
+/// The operation has no real value, for example `sqrt(-1)`.
+final class DomainFailure extends CalculatorFailure {
+  /// Creates the failure.
+  const new();
+
   @override
-  String toString() => 'DomainFailure';
+  String get message => 'That operation is undefined for this value.';
 }

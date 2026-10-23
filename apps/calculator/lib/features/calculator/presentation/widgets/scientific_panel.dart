@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 /// Secondary scientific functions for the calculator.
 class ScientificPanel extends StatelessWidget {
+  /// Creates the panel.
   const new({
     required this.second,
     required this.angleMode,
@@ -15,10 +16,19 @@ class ScientificPanel extends StatelessWidget {
     super.key,
   });
 
+  /// Whether the inverse functions are shown instead of the forward ones.
   final bool second;
+
+  /// The unit used by trigonometry.
   final AngleMode angleMode;
+
+  /// Called when the user toggles the inverse functions.
   final ValueChanged<bool> onSecondChanged;
+
+  /// Called when the user selects another angle unit.
   final ValueChanged<AngleMode> onAngleModeChanged;
+
+  /// Called with the token to insert, for example `sin(` or `pi`.
   final ValueChanged<String> onToken;
 
   @override

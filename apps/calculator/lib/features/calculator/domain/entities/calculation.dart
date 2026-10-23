@@ -1,7 +1,11 @@
-/// Core domain entity representing a completed calculation.
-/// Pure Dart - NO Flutter imports, NO Bloc, NO storage knowledge.
-class Calculation {
-  /// Creates a calculation.
+import 'package:meta/meta.dart';
+
+/// One completed calculation.
+///
+/// Pure Dart: no Flutter, bloc, or storage knowledge.
+@immutable
+final class Calculation {
+  /// Creates a calculation from the exact [expression] and its [result].
   const new({required this.expression, required this.result});
 
   /// The expression that was evaluated, exactly as typed.
@@ -9,6 +13,12 @@ class Calculation {
 
   /// The evaluated value.
   final double result;
+
+  /// The JSON representation persisted in the key/value store.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'expression': expression,
+    'result': result,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -18,10 +28,8 @@ class Calculation {
           other.result == result;
 
   @override
-  int get hashCode => expression.hashCode ^ result.hashCode;
+  int get hashCode => Object.hash(expression, result);
 
-  Map<String, Object?> toJson() => <String, Object?>{
-    'expression': expression,
-    'result': result,
-  };
+  @override
+  String toString() => 'Calculation($expression = $result)';
 }

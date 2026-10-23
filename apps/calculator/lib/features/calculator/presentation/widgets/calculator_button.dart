@@ -2,10 +2,26 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 
 /// Visual roles for calculator keys.
-enum CalculatorButtonStyle { number, operator, equals, function, destructive }
+enum CalculatorButtonStyle {
+  /// Digits and the decimal point.
+  number,
+
+  /// Binary operators and parentheses.
+  operator,
+
+  /// The evaluate key.
+  equals,
+
+  /// Scientific functions.
+  function,
+
+  /// Clear and backspace.
+  destructive,
+}
 
 /// A themed, accessible calculator key with shared press feedback.
 class CalculatorButton extends StatelessWidget {
+  /// Creates a key.
   const new({
     required this.label,
     required this.semanticsLabel,
@@ -14,9 +30,16 @@ class CalculatorButton extends StatelessWidget {
     super.key,
   });
 
+  /// The visible label.
   final String label;
+
+  /// The label announced by screen readers, since the glyph is not spoken.
   final String semanticsLabel;
+
+  /// The visual role of the key.
   final CalculatorButtonStyle style;
+
+  /// Called when the key is pressed.
   final VoidCallback onPressed;
 
   @override
