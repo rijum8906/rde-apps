@@ -1,0 +1,34 @@
+name: desktop_app
+description: Linux desktop host for the shared design system.
+publish_to: none
+version: 1.0.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
+
+dependencies:
+  app_localization:
+    path: ../../packages/app_localization
+  app_routing:
+    path: ../../packages/app_routing
+  app_shared:
+    path: ../../packages/app_shared
+  core:
+    path: ../../packages/core
+  design_system:
+    path: ../../packages/design_system
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^11.0.0
+
+flutter:
+  uses-material-design: true

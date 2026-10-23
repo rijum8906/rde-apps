@@ -1,0 +1,29 @@
+{
+  "@@locale": "en",
+  "appTitle": "Workspace",
+  "@appTitle": {
+    "description": "Window and task title of every workspace app."
+  },
+  "galleryTitle": "Design System",
+  "@galleryTitle": {
+    "description": "Title shown above the shared component gallery."
+  },
+  "openDetails": "Open detail page",
+  "@openDetails": {
+    "description": "Action that opens the typography and shape detail page."
+  },
+  "detailsTitle": "Type & shapes",
+  "@detailsTitle": {
+    "description": "Title of the detail page that demonstrates page transitions."
+  },
+  "welcomeBack": "Welcome back, {name}",
+  "@welcomeBack": {
+    "description": "Greeting shown on the home screen.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Ada"
+      }
+    }
+  }
+}

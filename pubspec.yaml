@@ -1,0 +1,22 @@
+name: my_workspace
+description: A production-grade Flutter multi-app workspace.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.13.0
+
+# Native Pub workspace (Dart >= 3.5 / Flutter >= 3.24).
+# Every member declares `resolution: workspace` and shares one lockfile.
+workspace:
+  - apps/calculator
+  - apps/desktop_app
+  - packages/app_localization
+  - packages/app_routing
+  - packages/app_shared
+  - packages/core
+  - packages/design_system
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  very_good_analysis: ^11.0.0
