@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 /// The large, right-aligned expression and result display.
 class CalculatorDisplay extends StatelessWidget {
+  /// Creates the display.
   const new({
     required this.expression,
     required this.result,
@@ -10,8 +11,13 @@ class CalculatorDisplay extends StatelessWidget {
     super.key,
   });
 
+  /// The expression to show, already formatted for display.
   final String expression;
+
+  /// The last evaluated result, shown when no error is present.
   final String? result;
+
+  /// The inline error shown instead of the result.
   final String? errorMessage;
 
   @override
@@ -23,10 +29,10 @@ class CalculatorDisplay extends StatelessWidget {
     final displayValue = result ?? effectiveExpression;
     return Container(
       color: colors.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: [
           SingleChildScrollView(
             key: const Key('calculator-expression-scroll'),

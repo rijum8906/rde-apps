@@ -10,10 +10,12 @@ void main() async {
   // Initialize the window manager
   await windowManager.ensureInitialized();
 
+  // Wide enough for the navigation rail; narrow windows still get the
+  // bottom navigation bar down to the minimum size.
   const windowOptions = WindowOptions(
-    size: Size(500, 700), // Set your initial width and height
-    minimumSize: Size(400, 300),
-    center: true, // Center the window on the screen
+    size: Size(480, 750),
+    minimumSize: Size(420, 650),
+    center: true,
     title: 'Calculator',
   );
 

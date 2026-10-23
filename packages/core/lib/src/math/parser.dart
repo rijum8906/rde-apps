@@ -56,7 +56,13 @@ final class PostfixExpression extends Expression {
 }
 
 /// The supported postfix operators.
-enum PostfixOperator { factorial, percent }
+enum PostfixOperator {
+  /// The factorial operator (`!`).
+  factorial,
+
+  /// The percentage operator (`%`), which divides by one hundred.
+  percent,
+}
 
 /// The unary operators supported by the grammar.
 enum UnaryOperator {
@@ -124,7 +130,8 @@ final class BinaryExpression extends Expression {
 /// term       := unary (('*' | '/' | '%') unary | implicit-multiply unary)*
 /// unary      := ('+' | '-') unary | power
 /// power      := primary ('^' unary)?      // right-associative
-/// primary    := number | constant | function '(' expression ')' | '(' expression ')'
+/// primary    := number | constant | function '(' expression ')'
+///               | '(' expression ')'
 /// ```
 ///
 /// Exponentiation is right-associative and binds tighter than unary minus, so
@@ -363,7 +370,15 @@ final class MathParser {
   }
 
   static const Set<String> _functions = {
-    'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'ln', 'log', 'sqrt',
+    'sin',
+    'cos',
+    'tan',
+    'asin',
+    'acos',
+    'atan',
+    'ln',
+    'log',
+    'sqrt',
   };
 
   bool _startsPrimary(MathToken token) =>

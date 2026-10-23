@@ -1,28 +1,38 @@
 import 'package:calculator/features/calculator/domain/entities/calculation.dart';
-import 'package:core/core.dart';
 
+/// The calculator's interaction state.
 class CalculatorState {
+  /// Creates the state.
   const new({
     this.expression = '',
     this.resultText,
     this.errorMessage,
     this.history = const [],
-    this.angleMode = AngleMode.degrees,
     this.justEvaluated = false,
   });
+
+  /// The expression being typed, in raw tokens (`pi`, `*`, `sqrt(`).
   final String expression;
+
+  /// The formatted result of the last evaluation, if any.
   final String? resultText;
+
+  /// The inline error shown under the display, if any.
   final String? errorMessage;
+
+  /// The persisted calculations, newest first.
   final List<Calculation> history;
-  final AngleMode angleMode;
+
+  /// Whether the last action was an evaluation, which makes the next digit
+  /// start a new expression instead of extending the result.
   final bool justEvaluated;
 
+  /// Returns a copy with the given fields replaced.
   CalculatorState copyWith({
     String? expression,
     String? resultText,
     String? errorMessage,
     List<Calculation>? history,
-    AngleMode? angleMode,
     bool? justEvaluated,
     bool clearResult = false,
     bool clearError = false,
@@ -31,7 +41,6 @@ class CalculatorState {
     resultText: clearResult ? null : resultText ?? this.resultText,
     errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     history: history ?? this.history,
-    angleMode: angleMode ?? this.angleMode,
     justEvaluated: justEvaluated ?? this.justEvaluated,
   );
 }

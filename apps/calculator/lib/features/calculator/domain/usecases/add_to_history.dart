@@ -3,17 +3,15 @@ import 'package:calculator/features/calculator/domain/failures.dart';
 import 'package:calculator/features/calculator/domain/repositories/calculator_repository.dart';
 import 'package:core/core.dart';
 
-/// Use case for appending a calculation to history (newest first), trimming to max 20.
+/// Persists one completed calculation, trimming the list to the history limit.
 class AddToHistory {
-  /// constructor
-  new(this.repository);
+  /// Creates the use case over [repository].
+  const new(this.repository);
 
-  /// some
+  /// The repository that owns history persistence.
   final CalculatorRepository repository;
 
-  /// Returns [Right] (Ok) on success, or [Left] (Err) on error.
-  /// Using core's [Result] class instead of dartz [Either].
-  Future<Result<void, CalculatorFailure>> call(Calculation params) async {
-    return await repository.addToHistory(params);
-  }
+  /// Stores [calculation] and returns the storage outcome.
+  Future<Result<void, CalculatorFailure>> call(Calculation calculation) =>
+      repository.addToHistory(calculation);
 }

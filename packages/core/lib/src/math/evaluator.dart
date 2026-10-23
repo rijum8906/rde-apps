@@ -158,4 +158,10 @@ abstract final class MathEvaluator {
 }
 
 /// The angular unit supplied to trigonometric evaluation.
-enum AngleMode { degrees, radians }
+enum AngleMode {
+  /// Degrees, where a full turn is 360.
+  degrees,
+
+  /// Radians, where a full turn is 2π.
+  radians,
+}

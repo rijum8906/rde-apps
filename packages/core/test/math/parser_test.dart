@@ -99,11 +99,10 @@ void main() {
       expect(_error('   ').code, MathErrorCode.emptyExpression);
     });
 
-    test('reports trailing tokens', () {
-      final error = _error('1 2');
+    test('parses implicit multiplication between adjacent primaries', () {
+      final expression = _parse('1 2') as BinaryExpression;
 
-      expect(error.code, MathErrorCode.unexpectedToken);
-      expect(error.position, 2);
+      expect(expression.op, BinaryOperator.multiply);
     });
 
     test('reports a missing closing parenthesis', () {
@@ -133,7 +132,7 @@ void main() {
     });
 
     test('reports unknown identifiers', () {
-      final error = _error('sin(1)');
+      final error = _error('foo(1)');
 
       expect(error.code, MathErrorCode.unknownIdentifier);
       expect(error.position, 0);

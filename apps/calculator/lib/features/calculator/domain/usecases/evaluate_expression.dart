@@ -3,28 +3,31 @@ import 'package:calculator/features/calculator/domain/failures.dart';
 import 'package:calculator/features/calculator/domain/repositories/calculator_repository.dart';
 import 'package:core/core.dart';
 
-/// Use case for evaluating a mathematical expression.
-/// Accepts a raw expression string, delegates parsing/evaluation to the repository,
-/// and returns either a [Calculation] success or a [CalculatorFailure] error.
+/// Evaluates a raw expression through the repository's math engine.
 class EvaluateExpression {
+  /// Creates the use case over [repository].
   const new(this.repository);
+
+  /// The repository that parses and evaluates expressions.
   final CalculatorRepository repository;
 
-  /// Returns [Right] with a [Calculation] on success, or [Left] with a [CalculatorFailure] on error.
-  /// Using core's [Result] class instead of dartz [Either] to avoid version compatibility issues.
+  /// Evaluates [params] and returns the result or a failure.
   Future<Result<Calculation, CalculatorFailure>> call(
     EvaluationParams params,
-  ) async {
-    return repository.evaluateExpression(
-      params.expression,
-      angleMode: params.angleMode,
-    );
-  }
+  ) => repository.evaluateExpression(
+    params.expression,
+    angleMode: params.angleMode,
+  );
 }
 
-/// Input for an evaluation, including the selected angular unit.
+/// Input for [EvaluateExpression].
 class EvaluationParams {
+  /// Creates evaluation parameters.
   const new({required this.expression, required this.angleMode});
+
+  /// The raw expression typed by the user.
   final String expression;
+
+  /// The unit used by trigonometric functions.
   final AngleMode angleMode;
 }

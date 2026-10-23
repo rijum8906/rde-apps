@@ -2,49 +2,109 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-/// A typed destination in the application router.
+/// Builds the widget that renders an [AppRoute].
+typedef AppRoutePageBuilder = Widget Function(
+  BuildContext context,
+  GoRouterState state,
+);
+
+/// A typed destination in the application route table.
 ///
-/// Every route owns its path and the design-system transition used when it is
-/// opened, so navigation names can never drift from the router table.
-sealed class AppRoute {
+/// Every route owns its path, a stable name, and the design-system transition
+/// played when it is opened, so navigation identifiers can never drift from
+/// the router table:
+///
+/// ```dart
+/// abstract final class AppRoutes {
+///   /// The home destination.
+///   static const AppRoute home = AppRoute(path: '/', name: 'home');
+/// }
+/// ```
+@immutable
+final class AppRoute {
+  /// Creates a route at [path] with a unique [name].
   const new({
-    required this.location,
+    required this.path,
+    required this.name,
     this.transition = AppPageTransition.sharedAxisX,
-  });
+  }) : assert(path.length > 0, 'A route path cannot be empty.');
 
-  /// The path used by `go_router`.
-  final String location;
+  /// The path registered with `go_router`.
+  final String path;
 
-  /// The transition played when this route is opened.
+  /// The unique route name, used for diagnostics and deep links.
+  final String name;
+
+  /// The transition played when the page is opened.
   final AppPageTransition transition;
 
-  /// The home route.
-  static const AppRoute home = HomeRoute();
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AppRoute &&
+          other.path == path &&
+          other.name == name &&
+          other.transition == transition;
 
-  /// The workspace detail route.
-  static const AppRoute details = DetailsRoute();
+  @override
+  int get hashCode => Object.hash(path, name, transition);
+
+  @override
+  String toString() => 'AppRoute($path)';
 }
 
-/// The home destination, rendered by the gallery.
-final class HomeRoute extends AppRoute {
-  /// Creates the home route.
-  const new({super.transition}) : super(location: '/');
+/// A route bound to the widget that renders it.
+@immutable
+final class AppPage {
+  /// Creates a page that renders [route] through [builder].
+  const new({required this.route, required this.builder});
+
+  /// The destination this page renders.
+  final AppRoute route;
+
+  /// Builds the page content.
+  final AppRoutePageBuilder builder;
 }
 
-/// The detail destination, used to demonstrate page transitions.
-final class DetailsRoute extends AppRoute {
-  /// Creates the detail route.
-  const new({super.transition}) : super(location: '/details');
+/// Navigates between the branches of a tabbed shell.
+///
+/// The shell builder receives one of these so hosts can drive a
+/// `NavigationRail` or a `NavigationBar` without depending on `go_router`
+/// directly.
+final class AppShellNavigation {
+  /// Wraps the `go_router` navigation shell.
+  const new(this._shell);
+
+  final StatefulNavigationShell _shell;
+
+  /// The index of the selected branch.
+  int get currentIndex => _shell.currentIndex;
+
+  /// Selects the branch at [index].
+  ///
+  /// Re-selecting the active branch returns it to its initial location, which
+  /// matches the Material navigation-bar behaviour.
+  void goToBranch(int index) =>
+      _shell.goBranch(index, initialLocation: index == _shell.currentIndex);
 }
 
 /// Typed navigation helpers for [BuildContext].
 extension AppNavigationX on BuildContext {
   /// Replaces the current location with [route].
-  void goTo(AppRoute route) => GoRouter.of(this).go(route.location);
+  void goTo(AppRoute route) => GoRouter.of(this).go(route.path);
 
   /// Pushes [route] on top of the current location.
-  void pushRoute(AppRoute route) => GoRouter.of(this).push(route.location);
+  void pushRoute(AppRoute route) => GoRouter.of(this).push(route.path);
 
   /// Returns `true` when the router can pop the current page.
   bool canPopRoute() => GoRouter.of(this).canPop();
+
+  /// Whether [route] is the current location.
+  bool isRouteActive(AppRoute route) =>
+      GoRouter.of(this).state.matchedLocation == route.path;
+
+  /// A listenable that notifies whenever the active location changes.
+  ///
+  /// Pages use it to restore focus when their branch becomes active again.
+  Listenable get routeChanges => GoRouter.of(this).routerDelegate;
 }

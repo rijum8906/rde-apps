@@ -42,7 +42,7 @@ channel), newer than the native-workspace thresholds (Dart ≥ 3.5, Flutter ≥
 | --- | --- |
 | `core` | No Flutter dependency. Sealed `Result<T, E>`, `Logger`, JSON/async typedefs, string/iterable/date extensions, and a dependency-free tokenizer, parser, and evaluator for arithmetic expressions. |
 | `design_system` | `AppTheme`, seven dynamic color variants, M3 type scale + emphasis, shape scale, centralized motion tokens, themed widgets, accessible motion widgets, and the shared `DesignSystemGallery`. |
-| `app_routing` | `AppRoute` sealed route model, `AppRouter` that registers `AppPageTransitions` with `CustomTransitionPage`, typed `goTo`/`pushRoute` helpers. Optional detail route for single-screen apps. |
+| `app_routing` | Typed `AppRoute`/`AppPage` table, `AppRouter` that registers `AppPageTransitions` with `CustomTransitionPage`, an optional tabbed shell (`StatefulShellRoute`) with `AppShellNavigation`, typed `goTo`/`pushRoute` helpers, and a built-in not-found page. |
 | `app_localization` | English template + German placeholder ARB files, generated `AppLocalizations` with Flutter/Material delegates. |
 | `app_shared` | Zero-dependency `ServiceLocator`, `KeyValueStore`/`SecureStore` wrappers (shared_preferences and libsecret), `NotificationService` abstraction (D-Bus), platform and debug helpers. |
 
@@ -64,17 +64,30 @@ transitions on the detail page.
 An expression calculator (`2 + 3 * (4 - 1) / 2`) backed by `core`'s parser:
 
 - `core`'s `MathEvaluator` supports `+ - * / % ^`, parentheses, unary minus,
-  decimals, and the constants `pi` and `e`. Exponentiation is
+  decimals, the constants `pi` and `e`, and the functions `sin`, `cos`, `tan`,
+  `asin`, `acos`, `atan`, `ln`, `log`, and `sqrt`. Exponentiation is
   right-associative, and division by zero (or any non-finite result) returns
   `Result.err(MathError)`.
-- All keys are `AppButton`s wrapped in `AnimatedPressable`; the keypad uses
-  `Semantics` labels, and the theme comes entirely from `design_system`.
-- `=` is a filled tonal button. `⌫` deletes one character, `C` clears.
-- Keyboard: digits and operators, `Enter`/`=` evaluate, `Backspace` deletes,
-  `Escape` clears.
-- History keeps the last 20 expressions + results in `app_shared`'s
-  `KeyValueStore` (`shared_preferences` on Linux), shown in a collapsible
-  sidebar on wide windows and an end drawer on narrow ones.
+- Three pages share one responsive shell: **Calculator**, **History**, and
+  **Settings**. Wide windows get a `NavigationRail` (extended above 1180 px),
+  narrow ones a `NavigationBar`; each branch keeps its scroll position, and the
+  calculator bloc lives above `MaterialApp` so state survives tab changes.
+- The history page lists every persisted calculation, restores one with a tap,
+  and clears the list behind a confirmation dialog.
+- The settings page owns the persisted preferences: theme mode (system, light,
+  dark), Material 3 color style, and the trigonometric unit. The **About** page
+  is pushed above the shell and lists the keyboard shortcuts and licenses.
+- All keys are buttons wrapped in `AnimatedPressable`; the keypad fills the
+  available height, uses `Semantics` labels, and takes its theme entirely from
+  `design_system`. `=` is a filled primary button, `⌫` deletes one character,
+  `C` clears.
+- Keyboard: main-row and numpad digits and operators, `Enter`/`=` evaluate,
+  `Backspace` deletes, `Escape` clears; focus returns to the keypad when the
+  shell switches back to the calculator.
+- History and preferences share `app_shared`'s `KeyValueStore`
+  (`shared_preferences` on Linux); history keeps the last 20 expressions +
+  results, preferences survive a restart, and corrupt payloads fall back to
+  defaults instead of blocking startup.
 - Invalid input shows an inline error under the display; the next keypress
   clears it.
 
@@ -110,7 +123,8 @@ values in widgets or apps.
 - `FadeSlideIn` fades and offsets on either axis, with optional delay.
 - `StaggeredList` drives all children from one ticker with per-index intervals.
 - `AnimatedThemeSwitcher` wraps `AnimatedTheme` with the token duration/curve.
-  The calculator uses it to animate its light/dark toggle.
+  The gallery uses it to preview the other brightness; the calculator animates
+  theme changes through `MaterialApp`'s token-duration theme animation.
 - `AppPageTransitions` provides shared-axis X/Y and fade-through transitions
   and is registered with `go_router` in `app_routing`.
 
@@ -211,6 +225,9 @@ All gates below were run locally on Linux (Arch, Flutter 3.47.7 / Dart 3.13.5):
 | `flutter build linux --debug` in `apps/desktop_app` | pass |
 | `flutter build linux --debug` in `apps/calculator` | pass |
 
-The calculator test suite covers button input, keyboard input, clearing,
-backspace, inline errors, history persistence through a fake store, the
-20-entry cap, responsive layout at 360×600 and 1200×800, and theme switching.
+The calculator test suite covers button and keyboard input (including numpad
+keys and focus restoration after tab switches), clearing, backspace, inline
+errors, the scientific panel, history persistence through a fake store, the
+20-entry cap, the history and about pages, settings persistence across a
+restart, angle-unit evaluation, responsive layout at 360×600 and 1200×800, the
+rail/bar breakpoint, and theme switching.
