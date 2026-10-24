@@ -1,4 +1,5 @@
 import 'package:app_shared/app_shared.dart';
+import 'package:app_theme/app_theme.dart';
 import 'package:calculator/app.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
@@ -27,5 +28,18 @@ void main() async {
 
   ServiceLocator.instance.register<KeyValueStore>(PreferencesStore());
 
-  runApp(CalculatorApp(store: ServiceLocator.instance.get<KeyValueStore>()));
+  // The org.rde.Theme service is optional: when the desktop runs it, the
+  // calculator adopts the desktop's Material palette and light/dark scheme,
+  // and theme changes made here are published back to every app. Without it
+  // the app keeps its locally stored selection. The client lives for the
+  // process.
+  final theme = RdeThemeClient();
+
+  runApp(
+    CalculatorApp(
+      store: ServiceLocator.instance.get<KeyValueStore>(),
+      themeSource: theme,
+      themeSink: theme,
+    ),
+  );
 }

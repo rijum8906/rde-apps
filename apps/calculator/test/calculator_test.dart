@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:app_shared/app_shared.dart';
+import 'package:app_theme/app_theme.dart';
 import 'package:calculator/app.dart';
 import 'package:calculator/features/calculator/data/datasources/calculator_local_data_source.dart';
 import 'package:calculator/features/settings/data/settings_repository.dart';
+import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +29,43 @@ final class _FakeStore implements KeyValueStore {
   @override
   Future<void> writeString(String key, String value) async {
     values[key] = value;
+  }
+}
+
+/// A controllable stand-in for the `org.rde.Theme` service.
+final class _FakeThemeBus
+    implements ThemeSource, ThemeSink, ThemePaletteSource {
+  final StreamController<AppThemeSettings> _settings =
+      StreamController<AppThemeSettings>.broadcast();
+  final StreamController<AppDynamicColorSchemes?> _palettes =
+      StreamController<AppDynamicColorSchemes?>.broadcast();
+  final List<AppThemeSettings> published = <AppThemeSettings>[];
+  AppThemeSettings? current;
+  AppDynamicColorSchemes? palette;
+
+  @override
+  Future<AppThemeSettings?> read() async => current;
+
+  @override
+  Stream<AppThemeSettings> get changes => _settings.stream;
+
+  @override
+  Future<AppDynamicColorSchemes?> readPalette() async => palette;
+
+  @override
+  Stream<AppDynamicColorSchemes?> get paletteChanges => _palettes.stream;
+
+  @override
+  Future<void> publish(AppThemeSettings settings) async =>
+      published.add(settings);
+
+  void emitSettings(AppThemeSettings settings) => _settings.add(settings);
+
+  void emitPalette(AppDynamicColorSchemes value) => _palettes.add(value);
+
+  Future<void> close() async {
+    await _settings.close();
+    await _palettes.close();
   }
 }
 
@@ -275,16 +316,13 @@ void main() {
 
     final appearance = find.text('Appearance');
     expect(Theme.of(tester.element(appearance)).brightness, Brightness.dark);
-    expect(
-      store.values[SettingsRepository.storageKey],
-      contains('"themeMode":"dark"'),
-    );
+    expect(store.values[ThemeStore.storageKey], contains('"mode":"dark"'));
 
     await tester.tap(find.byKey(const ValueKey('color-vibrant')));
     await tester.pumpAndSettle();
     expect(
-      store.values[SettingsRepository.storageKey],
-      contains('"colorVariant":"vibrant"'),
+      store.values[ThemeStore.storageKey],
+      contains('"variant":"vibrant"'),
     );
   });
 
@@ -366,6 +404,46 @@ void main() {
     );
     expect(find.text('Keyboard'), findsOneWidget);
     expect(find.text('Enter ='), findsOneWidget);
+  });
+
+  testWidgets('follows the desktop theme palette and scheme', (tester) async {
+    final bus = _FakeThemeBus()
+      ..current = const AppThemeSettings(mode: ThemeMode.light)
+      ..palette = RdeThemePalette.fromRoles(
+        light: const {'primary': '#123456', 'surface': '#FAFAFA'},
+        dark: const {'primary': '#ABCDEF', 'surface': '#101010'},
+      );
+    addTearDown(bus.close);
+
+    await tester.pumpWidget(
+      CalculatorApp(store: _FakeStore(), themeSource: bus, themeSink: bus),
+    );
+    await tester.pumpAndSettle();
+
+    final display = find.byKey(const Key('calculator-result'));
+    expect(
+      Theme.of(tester.element(display)).colorScheme.primary,
+      const Color(0xFF123456),
+    );
+
+    bus.emitPalette(
+      RdeThemePalette.fromRoles(
+        light: const {'primary': '#654321', 'surface': '#FAFAFA'},
+        dark: const {'primary': '#FEDCBA', 'surface': '#101010'},
+      )!,
+    );
+    bus.emitSettings(const AppThemeSettings(mode: ThemeMode.dark));
+    await tester.pumpAndSettle();
+
+    expect(
+      Theme.of(tester.element(display)).colorScheme.primary,
+      const Color(0xFFFEDCBA),
+    );
+    expect(Theme.of(tester.element(display)).brightness, Brightness.dark);
+
+    await _openTab(tester, 'settings');
+    expect(find.text('Colors follow the desktop theme.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('color-vibrant')), findsNothing);
   });
 
   testWidgets('theme toggle switches brightness', (tester) async {

@@ -18,5 +18,10 @@ Future<void> main() async {
   // design system falls back to its static seed when it does not.
   final dynamicColors = await AppDynamicColors.load();
 
-  runApp(DesktopApp(dynamicColors: dynamicColors));
+  runApp(
+    DesktopApp(
+      dynamicColors: dynamicColors,
+      store: ServiceLocator.instance.get<KeyValueStore>(),
+    ),
+  );
 }

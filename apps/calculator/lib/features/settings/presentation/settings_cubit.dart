@@ -1,54 +1,43 @@
 import 'dart:async';
 
 import 'package:calculator/features/settings/data/settings_repository.dart';
-import 'package:calculator/features/settings/domain/app_settings.dart';
 import 'package:core/core.dart';
-import 'package:design_system/design_system.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Owns the calculator preferences and persists every change.
+/// Owns the calculator's trigonometric unit and persists every change.
 ///
-/// The cubit is the single source of truth for the theme and the trigonometric
-/// unit, so the settings page, the app shell, and the calculator always agree.
-final class SettingsCubit extends Cubit<AppSettings> {
-  /// Creates the cubit with the defaults until [load] finishes.
-  new(this._repository) : super(AppSettings.defaults);
+/// The theme is deliberately not part of this state: it is owned by the
+/// shared `AppThemeController` from `app_theme`, so every app can follow one
+/// selection.
+final class SettingsCubit extends Cubit<AngleMode> {
+  /// Creates the cubit with degrees until [load] finishes.
+  new(this._repository) : super(AngleMode.degrees);
 
   final SettingsRepository _repository;
 
-  /// Reads the persisted preferences into the state.
+  /// Reads the persisted unit into the state.
   Future<void> load() async {
-    final settings = await _repository.load();
+    final mode = await _repository.load();
     if (isClosed) {
       return;
     }
-    emit(settings);
+    emit(mode);
   }
-
-  /// Selects [mode] as the theme mode.
-  void setThemeMode(ThemeMode mode) => _apply(state.copyWith(themeMode: mode));
-
-  /// Selects [variant] as the Material 3 color variant.
-  void setColorVariant(AppColorVariant variant) =>
-      _apply(state.copyWith(colorVariant: variant));
 
   /// Selects [mode] as the trigonometric unit.
-  void setAngleMode(AngleMode mode) => _apply(state.copyWith(angleMode: mode));
-
-  /// Restores, and forgets, every preference.
-  Future<void> restoreDefaults() async {
-    if (state != AppSettings.defaults) {
-      emit(AppSettings.defaults);
-    }
-    await _repository.reset();
-  }
-
-  void _apply(AppSettings settings) {
-    if (settings == state) {
+  void setAngleMode(AngleMode mode) {
+    if (mode == state) {
       return;
     }
-    emit(settings);
-    unawaited(_repository.save(settings));
+    emit(mode);
+    unawaited(_repository.save(mode));
+  }
+
+  /// Restores and forgets the unit.
+  Future<void> restoreDefaults() async {
+    if (state != AngleMode.degrees) {
+      emit(AngleMode.degrees);
+    }
+    await _repository.reset();
   }
 }

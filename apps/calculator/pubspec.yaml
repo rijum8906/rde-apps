@@ -13,6 +13,8 @@ dependencies:
     path: ../../packages/app_routing
   app_shared:
     path: ../../packages/app_shared
+  app_theme:
+    path: ../../packages/app_theme
   bloc: ^9.2.1
   core:
     path: ../../packages/core

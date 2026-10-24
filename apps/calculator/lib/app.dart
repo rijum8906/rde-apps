@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_routing/app_routing.dart';
 import 'package:app_shared/app_shared.dart';
+import 'package:app_theme/app_theme.dart';
 import 'package:calculator/features/about/presentation/pages/about_page.dart';
 import 'package:calculator/features/calculator/data/datasources/calculator_local_data_source.dart';
 import 'package:calculator/features/calculator/data/repositories/calculator_repository_impl.dart';
@@ -18,7 +19,6 @@ import 'package:calculator/features/calculator/presentation/bloc/calculator_even
 import 'package:calculator/features/calculator/presentation/pages/calculator_page.dart';
 import 'package:calculator/features/history/presentation/pages/history_page.dart';
 import 'package:calculator/features/settings/data/settings_repository.dart';
-import 'package:calculator/features/settings/domain/app_settings.dart';
 import 'package:calculator/features/settings/presentation/settings_cubit.dart';
 import 'package:calculator/features/settings/presentation/settings_page.dart';
 import 'package:calculator/routing/calculator_routes.dart';
@@ -30,14 +30,29 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 /// The Linux calculator host.
 ///
 /// Composition happens here: one calculator bloc above the router so every page
-/// can read the same state, one settings cubit that owns the persisted theme
-/// and angle unit, and a typed router whose pages share the responsive shell.
+/// can read the same state, one [AppThemeController] for the workspace theme,
+/// one cubit for the angle unit, and a typed router whose pages share the
+/// responsive shell.
 class CalculatorApp extends StatefulWidget {
   /// Creates the app.
-  const new({required this.store, super.key});
+  const new({
+    required this.store,
+    this.themeSource,
+    this.themeSink,
+    super.key,
+  });
 
-  /// The key/value store used for history and preferences.
+  /// The key/value store used for history, preferences, and the theme.
   final KeyValueStore store;
+
+  /// The desktop theme service to follow, when one is connected.
+  ///
+  /// When it supplies a [ThemePaletteSource] as well, the calculator renders
+  /// the desktop's Material palette and re-colors itself on every theme change.
+  final ThemeSource? themeSource;
+
+  /// Where local theme changes are published so the desktop follows them.
+  final ThemeSink? themeSink;
 
   @override
   State<CalculatorApp> createState() => _CalculatorAppState();
@@ -57,6 +72,12 @@ class _CalculatorAppState extends State<CalculatorApp> {
 
   late final SettingsCubit _settingsCubit = SettingsCubit(
     SettingsRepository(widget.store),
+  );
+
+  late final AppThemeController _theme = AppThemeController(
+    store: ThemeStore(widget.store),
+    source: widget.themeSource,
+    sink: widget.themeSink,
   );
 
   late final AppRouter _router = AppRouter(
@@ -88,6 +109,7 @@ class _CalculatorAppState extends State<CalculatorApp> {
   void initState() {
     super.initState();
     unawaited(_settingsCubit.load());
+    unawaited(_theme.start());
   }
 
   @override
@@ -95,6 +117,7 @@ class _CalculatorAppState extends State<CalculatorApp> {
     _router.dispose();
     unawaited(_calculatorBloc.close());
     unawaited(_settingsCubit.close());
+    _theme.dispose();
     super.dispose();
   }
 
@@ -105,36 +128,29 @@ class _CalculatorAppState extends State<CalculatorApp> {
         BlocProvider<CalculatorBloc>.value(value: _calculatorBloc),
         BlocProvider<SettingsCubit>.value(value: _settingsCubit),
       ],
-      child: BlocBuilder<SettingsCubit, AppSettings>(
-        builder: (context, settings) {
-          // A media query above MaterialApp lets the theme honor the
-          // platform's high-contrast request before ThemeData is built.
-          return MediaQuery.fromView(
-            view: View.of(context),
-            child: Builder(
-              builder: (context) {
-                final highContrast = MediaQuery.highContrastOf(context);
-                const motion = AppMotionTokens.standardTokens;
-                return MaterialApp.router(
-                  title: 'Calculator',
-                  debugShowCheckedModeBanner: false,
-                  theme: AppTheme.light(
-                    variant: settings.colorVariant,
-                    highContrast: highContrast,
-                  ),
-                  darkTheme: AppTheme.dark(
-                    variant: settings.colorVariant,
-                    highContrast: highContrast,
-                  ),
-                  themeMode: settings.themeMode,
-                  themeAnimationDuration: motion.long,
-                  themeAnimationCurve: motion.emphasized,
-                  routerConfig: _router.router,
-                );
-              },
-            ),
-          );
-        },
+      child: AppThemeScope(
+        controller: _theme,
+        // A media query above MaterialApp lets the theme honor the platform's
+        // high-contrast request before ThemeData is built.
+        child: MediaQuery.fromView(
+          view: View.of(context),
+          child: AppThemeBuilder(
+            controller: _theme,
+            builder: (context, light, dark, mode) {
+              const motion = AppMotionTokens.standardTokens;
+              return MaterialApp.router(
+                title: 'Calculator',
+                debugShowCheckedModeBanner: false,
+                theme: light,
+                darkTheme: dark,
+                themeMode: mode,
+                themeAnimationDuration: motion.long,
+                themeAnimationCurve: motion.emphasized,
+                routerConfig: _router.router,
+              );
+            },
+          ),
+        ),
       ),
     );
   }

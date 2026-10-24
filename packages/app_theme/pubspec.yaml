@@ -1,0 +1,24 @@
+name: app_theme
+description: Unified, persisted theme selection shared by every workspace app.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
+
+dependencies:
+  app_shared:
+    path: ../app_shared
+  dbus: ^0.8.0
+  design_system:
+    path: ../design_system
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^11.0.0

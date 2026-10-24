@@ -1,8 +1,9 @@
 # Flutter Linux workspace
 
 A Linux-only Flutter monorepo with one Material 3 **Expressive** design system,
-shared routing/localization/services, a component gallery host, and an
-expression-based calculator. The workspace targets Linux desktop exclusively.
+a shared theme controller, shared routing/localization/services, a component
+gallery host, and an expression-based calculator. The workspace targets Linux
+desktop exclusively.
 
 ## Tooling decision: native Pub workspaces
 
@@ -30,7 +31,8 @@ channel), newer than the native-workspace thresholds (Dart ≥ 3.5, Flutter ≥
 │   ├── design_system/            # M3 Expressive theme, widgets, motion, gallery
 │   ├── app_routing/              # typed go_router wrapper + page transitions
 │   ├── app_localization/         # en/de ARB resources and delegates
-│   └── app_shared/               # DI, storage, notifications, platform helpers
+│   ├── app_shared/               # DI, storage, notifications, platform helpers
+│   └── app_theme/                # unified theme controller + persistence
 └── apps/
     ├── desktop_app/              # flutter create --platforms=linux
     └── calculator/               # flutter create --platforms=linux
@@ -45,6 +47,7 @@ channel), newer than the native-workspace thresholds (Dart ≥ 3.5, Flutter ≥
 | `app_routing` | Typed `AppRoute`/`AppPage` table, `AppRouter` that registers `AppPageTransitions` with `CustomTransitionPage`, an optional tabbed shell (`StatefulShellRoute`) with `AppShellNavigation`, typed `goTo`/`pushRoute` helpers, and a built-in not-found page. |
 | `app_localization` | English template + German placeholder ARB files, generated `AppLocalizations` with Flutter/Material delegates. |
 | `app_shared` | Zero-dependency `ServiceLocator`, `KeyValueStore`/`SecureStore` wrappers (shared_preferences and libsecret), `NotificationService` abstraction (D-Bus), platform and debug helpers. |
+| `app_theme` | One `AppThemeController` per app: the selected mode + color variant, `ThemeStore` persistence, `AppThemeScope`/`AppThemeBuilder` wiring for `MaterialApp`, and the `ThemeSource`/`ThemeSink` seam for the planned `org.rde.Theme` service. |
 
 Apps only contain platform scaffolding, bootstrapping, and app-level state.
 The gallery demo lives in `design_system`; the calculator's math lives in
@@ -74,9 +77,10 @@ An expression calculator (`2 + 3 * (4 - 1) / 2`) backed by `core`'s parser:
   calculator bloc lives above `MaterialApp` so state survives tab changes.
 - The history page lists every persisted calculation, restores one with a tap,
   and clears the list behind a confirmation dialog.
-- The settings page owns the persisted preferences: theme mode (system, light,
-  dark), Material 3 color style, and the trigonometric unit. The **About** page
-  is pushed above the shell and lists the keyboard shortcuts and licenses.
+- The settings page edits the shared theme selection (mode and Material 3
+  color style) through `app_theme`, plus the calculator's trigonometric unit;
+  all of them are persisted. The **About** page is pushed above the shell and
+  lists the keyboard shortcuts and licenses.
 - All keys are buttons wrapped in `AnimatedPressable`; the keypad fills the
   available height, uses `Semantics` labels, and takes its theme entirely from
   `design_system`. `=` is a filled primary button, `⌫` deletes one character,
@@ -84,9 +88,9 @@ An expression calculator (`2 + 3 * (4 - 1) / 2`) backed by `core`'s parser:
 - Keyboard: main-row and numpad digits and operators, `Enter`/`=` evaluate,
   `Backspace` deletes, `Escape` clears; focus returns to the keypad when the
   shell switches back to the calculator.
-- History and preferences share `app_shared`'s `KeyValueStore`
+- History, the angle unit, and the theme share `app_shared`'s `KeyValueStore`
   (`shared_preferences` on Linux); history keeps the last 20 expressions +
-  results, preferences survive a restart, and corrupt payloads fall back to
+  results, everything survives a restart, and corrupt payloads fall back to
   defaults instead of blocking startup.
 - Invalid input shows an inline error under the display; the next keypress
   clears it.
@@ -137,6 +141,47 @@ to `Duration.zero` when `MediaQuery.disableAnimations` is set, and the motion
 widgets short-circuit to a static state. `AppTheme` reads
 `MediaQuery.highContrast` and generates a `contrastLevel: 1` scheme, which takes
 precedence over dynamic color.
+
+## Unified theme (`app_theme`)
+
+Every app resolves its theme through one `AppThemeController` instead of
+building `ThemeData` itself:
+
+```dart
+final theme = AppThemeController(store: ThemeStore(store));
+await theme.start();
+
+AppThemeScope(
+  controller: theme,
+  child: AppThemeBuilder(
+    controller: theme,
+    builder: (context, light, dark, mode) => MaterialApp.router(
+      theme: light,
+      darkTheme: dark,
+      themeMode: mode,
+      routerConfig: router,
+    ),
+  ),
+);
+```
+
+Any widget below the scope can change the theme with
+`AppThemeScope.of(context).setMode(...)`; the selection is stored under
+`app.theme` and survives restarts. High contrast and system dynamic colors are
+folded in by `AppThemeBuilder`.
+
+**The `org.rde.Theme` service is not built yet.** `ThemeSource` (read + stream)
+and `ThemeSink` (publish) are the seam: once a session-bus client implements
+them, passing `source:` and `sink:` to the controller makes every running app
+follow one change, with no widget changes. The planned contract lives in
+[`packages/app_theme/README.md`](packages/app_theme/README.md):
+
+| Bus name | Object | Interface | Methods | Signal |
+| --- | --- | --- | --- | --- |
+| `org.rde.Theme` | `/org/rde/Theme` | `org.rde.Theme` | `GetTheme() → s`, `SetTheme(s)` | `ThemeChanged(s)` |
+
+The payload is `AppThemeSettings.toJson()`, for example
+`{"mode":"dark","variant":"expressive"}`.
 
 ## Other decisions
 
@@ -192,6 +237,7 @@ flutter analyze --fatal-infos --fatal-warnings
 (cd packages/app_routing && flutter test)
 (cd packages/app_localization && flutter test)
 (cd packages/app_shared && flutter test)
+(cd packages/app_theme && flutter test)
 (cd apps/desktop_app && flutter test)
 (cd apps/calculator && flutter test)
 
@@ -199,8 +245,9 @@ flutter analyze --fatal-infos --fatal-warnings
 cd packages/app_localization && flutter gen-l10n
 ```
 
-Hot reload works in both apps: theme mode/variant live in app state, and the
-gallery/calculator screens are regular widget subtrees.
+Hot reload works in both apps: theme mode/variant live in the shared
+`AppThemeController`, and the gallery/calculator screens are regular widget
+subtrees.
 
 ## CI
 
@@ -220,7 +267,7 @@ All gates below were run locally on Linux (Arch, Flutter 3.47.7 / Dart 3.13.5):
 | `dart pub get` at root | pass |
 | `flutter analyze --fatal-infos` at root | 0 issues |
 | `dart format --output=none --set-exit-if-changed .` | pass |
-| `flutter test` in `core`, `design_system`, `app_routing`, `app_localization`, `app_shared` | pass |
+| `flutter test` in `core`, `design_system`, `app_routing`, `app_localization`, `app_shared`, `app_theme` | pass |
 | `flutter test` in `desktop_app`, `calculator` | pass |
 | `flutter build linux --debug` in `apps/desktop_app` | pass |
 | `flutter build linux --debug` in `apps/calculator` | pass |
@@ -230,4 +277,6 @@ keys and focus restoration after tab switches), clearing, backspace, inline
 errors, the scientific panel, history persistence through a fake store, the
 20-entry cap, the history and about pages, settings persistence across a
 restart, angle-unit evaluation, responsive layout at 360×600 and 1200×800, the
-rail/bar breakpoint, and theme switching.
+rail/bar breakpoint, and theme switching. `app_theme` is covered separately:
+the JSON payload, local persistence, source-over-store precedence, remote
+apply without echo, sink publishing, reset, and the scope/builder widget wiring.

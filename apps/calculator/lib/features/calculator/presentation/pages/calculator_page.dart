@@ -1,4 +1,5 @@
 import 'package:app_routing/app_routing.dart';
+import 'package:app_theme/app_theme.dart';
 import 'package:calculator/features/calculator/presentation/bloc/calculator_bloc.dart';
 import 'package:calculator/features/calculator/presentation/bloc/calculator_event.dart';
 import 'package:calculator/features/calculator/presentation/bloc/calculator_state.dart';
@@ -52,7 +53,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
 
   CalculatorBloc get _bloc => context.read<CalculatorBloc>();
 
-  AngleMode get _angleMode => context.read<SettingsCubit>().state.angleMode;
+  AngleMode get _angleMode => context.read<SettingsCubit>().state;
 
   @override
   void didChangeDependencies() {
@@ -136,6 +137,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
   @override
   Widget build(BuildContext context) {
     final settings = context.read<SettingsCubit>();
+    final theme = AppThemeScope.of(context);
     return Focus(
       focusNode: _focusNode,
       autofocus: true,
@@ -143,7 +145,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
       child: BlocBuilder<CalculatorBloc, CalculatorState>(
         builder: (context, state) {
           final angleMode = context.select<SettingsCubit, AngleMode>(
-            (cubit) => cubit.state.angleMode,
+            (cubit) => cubit.state,
           );
           final isDark = Theme.of(context).brightness == Brightness.dark;
           return AppScaffold(
@@ -153,9 +155,8 @@ class _CalculatorPageState extends State<CalculatorPage> {
               IconButton(
                 key: const Key('theme-toggle'),
                 tooltip: isDark ? 'Use light theme' : 'Use dark theme',
-                onPressed: () => settings.setThemeMode(
-                  isDark ? ThemeMode.light : ThemeMode.dark,
-                ),
+                onPressed: () =>
+                    theme.setMode(isDark ? ThemeMode.light : ThemeMode.dark),
                 icon: Icon(
                   isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
                 ),

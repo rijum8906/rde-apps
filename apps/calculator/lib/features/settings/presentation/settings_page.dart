@@ -1,6 +1,6 @@
 import 'package:app_routing/app_routing.dart';
+import 'package:app_theme/app_theme.dart';
 import 'package:calculator/features/calculator/presentation/widgets/deg_rad_toggle.dart';
-import 'package:calculator/features/settings/domain/app_settings.dart';
 import 'package:calculator/features/settings/presentation/settings_cubit.dart';
 import 'package:calculator/routing/calculator_routes.dart';
 import 'package:core/core.dart';
@@ -9,6 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 /// The preferences page: theme, color style, angle unit, and the about entry.
+///
+/// Theme controls talk to the shared [AppThemeController], so a change made
+/// here reaches every app through the desktop theme service. When that service
+/// supplies the palette, the colors come from the desktop and the local color
+/// style has no effect, so only its light/dark choice is offered.
+/// The angle unit is calculator-specific and stays in [SettingsCubit].
 class SettingsPage extends StatelessWidget {
   /// Creates the page.
   const new({super.key});
@@ -21,8 +27,13 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<SettingsCubit>().state;
+    final theme = AppThemeScope.of(context);
+    final followsDesktop = theme.palette != null;
+    final angleMode = context.watch<SettingsCubit>().state;
     final cubit = context.read<SettingsCubit>();
+    final isDefault =
+        theme.settings == AppThemeSettings.defaults &&
+        angleMode == AngleMode.degrees;
 
     return AppScaffold(
       title: 'Settings',
@@ -39,38 +50,56 @@ class SettingsPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 SegmentedButton<ThemeMode>(
                   showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      label: Text('System'),
+                  segments: [
+                    // The desktop theme is only light or dark, so "system" is
+                    // not offered while it drives the app.
+                    if (!followsDesktop)
+                      const ButtonSegment(
+                        value: ThemeMode.system,
+                        label: Text('System'),
+                      ),
+                    const ButtonSegment(
+                      value: ThemeMode.light,
+                      label: Text('Light'),
                     ),
-                    ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-                    ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+                    const ButtonSegment(
+                      value: ThemeMode.dark,
+                      label: Text('Dark'),
+                    ),
                   ],
-                  selected: {settings.themeMode},
+                  selected: {theme.mode},
                   onSelectionChanged: (selection) =>
-                      cubit.setThemeMode(selection.first),
+                      theme.setMode(selection.first),
                 ),
                 const SizedBox(height: 20),
-                Text('Color style', style: context.text.emphasisSmall),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final variant in AppColorVariant.values)
-                      ChoiceChip(
-                        key: ValueKey('color-${variant.name}'),
-                        avatar: CircleAvatar(
-                          backgroundColor: _swatches[variant],
-                          radius: 7,
+                if (followsDesktop)
+                  Text(
+                    'Colors follow the desktop theme.',
+                    style: context.text.scale.bodySmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  )
+                else ...[
+                  Text('Color style', style: context.text.emphasisSmall),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final variant in AppColorVariant.values)
+                        ChoiceChip(
+                          key: ValueKey('color-${variant.name}'),
+                          avatar: CircleAvatar(
+                            backgroundColor: _swatches[variant],
+                            radius: 7,
+                          ),
+                          label: Text(variant.label),
+                          selected: theme.variant == variant,
+                          onSelected: (_) => theme.setVariant(variant),
                         ),
-                        label: Text(variant.label),
-                        selected: settings.colorVariant == variant,
-                        onSelected: (_) => cubit.setColorVariant(variant),
-                      ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -82,16 +111,13 @@ class SettingsPage extends StatelessWidget {
               children: [
                 AppListTile(
                   title: 'Angle unit',
-                  subtitle: settings.angleMode == AngleMode.degrees
+                  subtitle: angleMode == AngleMode.degrees
                       ? 'Degrees, 0° to 360°'
                       : 'Radians, 0 to 2π',
                   leadingIcon: Icons.straighten,
                 ),
                 const SizedBox(height: 8),
-                DegRadToggle(
-                  mode: settings.angleMode,
-                  onChanged: cubit.setAngleMode,
-                ),
+                DegRadToggle(mode: angleMode, onChanged: cubit.setAngleMode),
               ],
             ),
           ),
@@ -110,9 +136,9 @@ class SettingsPage extends StatelessWidget {
             icon: Icons.restart_alt,
             variant: AppButtonVariant.outlined,
             expand: true,
-            onPressed: settings == AppSettings.defaults
+            onPressed: isDefault
                 ? null
-                : () => _restoreDefaults(context, cubit),
+                : () => _restoreDefaults(context, theme, cubit),
           ),
           const SizedBox(height: 24),
         ],
@@ -122,6 +148,7 @@ class SettingsPage extends StatelessWidget {
 
   Future<void> _restoreDefaults(
     BuildContext context,
+    AppThemeController theme,
     SettingsCubit cubit,
   ) async {
     final confirmed = await AppDialog.show(
@@ -135,6 +162,7 @@ class SettingsPage extends StatelessWidget {
     if (!(confirmed ?? false)) {
       return;
     }
+    await theme.reset();
     await cubit.restoreDefaults();
     if (!context.mounted) {
       return;

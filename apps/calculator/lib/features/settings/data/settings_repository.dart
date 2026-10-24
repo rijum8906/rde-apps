@@ -1,44 +1,60 @@
 import 'dart:convert';
 
 import 'package:app_shared/app_shared.dart';
-import 'package:calculator/features/settings/domain/app_settings.dart';
+import 'package:core/core.dart';
 
-/// Loads and persists [AppSettings] in the workspace key/value store.
+/// Loads and persists the calculator's trigonometric unit.
+///
+/// The theme is not stored here: it is owned by the shared
+/// `AppThemeController` and persisted by `app_theme`'s `ThemeStore`.
 final class SettingsRepository {
   /// Creates a repository backed by `store`.
   new(this._store);
 
-  /// The storage key that owns every calculator preference.
+  /// The key that owns the calculator's own preferences.
   static const String storageKey = 'calculator.settings';
 
   final KeyValueStore _store;
 
-  /// Reads the stored preferences, falling back to the defaults.
+  /// Reads the stored unit, defaulting to degrees.
   ///
-  /// Missing, unreadable, or corrupt payloads are never fatal: preferences are
-  /// an enhancement, so the calculator always starts.
-  Future<AppSettings> load() async {
+  /// Missing or corrupt payloads are never fatal, and values written by older
+  /// versions (which also stored theme fields) are read for `angleMode` only.
+  Future<AngleMode> load() async {
     try {
       final raw = await _store.readString(storageKey);
       if (raw == null) {
-        return AppSettings.defaults;
+        return AngleMode.degrees;
       }
-      return AppSettings.fromJson(jsonDecode(raw));
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<Object?, Object?>) {
+        return AngleMode.degrees;
+      }
+      final name = decoded['angleMode'];
+      for (final mode in AngleMode.values) {
+        if (mode.name == name) {
+          return mode;
+        }
+      }
+      return AngleMode.degrees;
     } on Object {
-      return AppSettings.defaults;
+      return AngleMode.degrees;
     }
   }
 
-  /// Persists [settings], ignoring storage failures for the same reason.
-  Future<void> save(AppSettings settings) async {
+  /// Persists [mode], ignoring storage failures.
+  Future<void> save(AngleMode mode) async {
     try {
-      await _store.writeString(storageKey, jsonEncode(settings.toJson()));
+      await _store.writeString(
+        storageKey,
+        jsonEncode(<String, Object?>{'angleMode': mode.name}),
+      );
     } on Object {
       // Preferences are best-effort; the in-memory state stays authoritative.
     }
   }
 
-  /// Removes the stored preferences.
+  /// Removes the stored unit.
   Future<void> reset() async {
     try {
       await _store.remove(storageKey);
