@@ -2,8 +2,8 @@
 
 A Linux-only Flutter monorepo with one Material 3 **Expressive** design system,
 a shared theme controller, shared routing/localization/services, a component
-gallery host, and an expression-based calculator. The workspace targets Linux
-desktop exclusively.
+gallery host, an expression-based calculator, and a network speed test. The
+workspace targets Linux desktop exclusively.
 
 ## Tooling decision: native Pub workspaces
 
@@ -35,7 +35,8 @@ channel), newer than the native-workspace thresholds (Dart ≥ 3.5, Flutter ≥
 │   └── app_theme/                # unified theme controller + persistence
 └── apps/
     ├── desktop_app/              # flutter create --platforms=linux
-    └── calculator/               # flutter create --platforms=linux
+    ├── calculator/               # flutter create --platforms=linux
+    └── speed_test/               # flutter create --platforms=linux
 ```
 
 ## Packages
@@ -94,6 +95,45 @@ An expression calculator (`2 + 3 * (4 - 1) / 2`) backed by `core`'s parser:
   defaults instead of blocking startup.
 - Invalid input shows an inline error under the display; the next keypress
   clears it.
+
+### Speed Test (`apps/speed_test`)
+
+A network speed test built around a Material 3 Expressive speed dial:
+
+- **Layered structure.** `features/speed_test/domain` holds pure-Dart
+  entities (`SpeedTestResult`, `SpeedTestProgress`, `SpeedTestConfig`,
+  `NetworkInfo`), failures, the repository contract, and four use cases;
+  `data` owns the Fast.com and Cloudflare clients plus the key/value history
+  store; and `presentation` owns the bloc, view model, gauge, metric cards,
+  and pages.
+- **Nearest server.** The app asks Fast.com's public bootstrap service for
+  nearby Netflix Open Connect appliances, probes each one, and keeps the
+  lowest-latency target. Those appliances sit inside or next to the user's
+  ISP, which is why the result tracks fast.com itself; the server card shows
+  the facility code, city, and ISP. If the bootstrap or server pick fails
+  before any bytes are measured, Cloudflare's anycast network takes over.
+- **Accurate peak numbers.** Download and upload use 2–6 parallel HTTP
+  streams depending on the profile. Downloads are ranged 5 MB blocks from a
+  25 MiB test object, and uploads send random bytes so compression cannot
+  inflate the reading. The first quarter of the 100 ms throughput samples is
+  discarded and the 90th percentile is reported, which matches how
+  Fast.com-style tests present peak speed instead of a single connection's
+  slow start.
+- **Attribution.** Fast.com is a Netflix service; this app is not affiliated
+  with Netflix and uses the public test endpoints only for measurement.
+- **Profiles.** Quick (25 MB down / 10 MB up, 2 streams), Balanced (50/20,
+  4 streams), and Thorough (150/50, 6 streams) are selectable in Settings and
+  persisted; history keeps the last 20 results with ping, jitter, server, and
+  profile.
+- **Pages.** The gauge page shows live phase progress, ping/jitter/download/
+  upload cards, and an inline error with a one-tap retry. History lists saved
+  runs and clears behind a confirmation dialog; Settings edits the shared
+  theme and the profile; About explains the measurement and privacy. Wide
+  windows get a `NavigationRail`, narrow ones a `NavigationBar`.
+- **Motion and accessibility.** The dial animates through the shared motion
+  tokens and collapses when reduced motion is requested; every metric and
+  phase chip is exposed to assistive technology. Stop updates the UI
+  immediately and then tears down the sockets.
 
 ## Material 3 Expressive
 
@@ -185,7 +225,7 @@ The payload is `AppThemeSettings.toJson()`, for example
 
 ## Other decisions
 
-- **Linux-only scope.** Both apps were created with `--platforms=linux` and
+- **Linux-only scope.** Every app was created with `--platforms=linux` and
   no other platform folders exist in the tree. Plugins without Linux
   implementations are not used; `flutter_local_notifications`, `flutter_secure_storage`,
   `shared_preferences`, and `dynamic_color` all have Linux implementations
@@ -215,6 +255,13 @@ cd apps/calculator
 flutter run -d linux
 ```
 
+## Run the speed test
+
+```bash
+cd apps/speed_test
+flutter run -d linux
+```
+
 ## Getting started
 
 ```bash
@@ -229,7 +276,11 @@ flutter run -d linux
 cd apps/calculator
 flutter run -d linux
 
-# 4. Quality gates
+# 4. Speed test
+cd apps/speed_test
+flutter run -d linux
+
+# 5. Quality gates
 dart format --output=none --set-exit-if-changed .
 flutter analyze --fatal-infos --fatal-warnings
 (cd packages/core && flutter test)
@@ -240,12 +291,13 @@ flutter analyze --fatal-infos --fatal-warnings
 (cd packages/app_theme && flutter test)
 (cd apps/desktop_app && flutter test)
 (cd apps/calculator && flutter test)
+(cd apps/speed_test && flutter test)
 
-# 5. Regenerate localization after ARB changes
+# 6. Regenerate localization after ARB changes
 cd packages/app_localization && flutter gen-l10n
 ```
 
-Hot reload works in both apps: theme mode/variant live in the shared
+Hot reload works in every app: theme mode/variant live in the shared
 `AppThemeController`, and the gallery/calculator screens are regular widget
 subtrees.
 
@@ -268,9 +320,11 @@ All gates below were run locally on Linux (Arch, Flutter 3.47.7 / Dart 3.13.5):
 | `flutter analyze --fatal-infos` at root | 0 issues |
 | `dart format --output=none --set-exit-if-changed .` | pass |
 | `flutter test` in `core`, `design_system`, `app_routing`, `app_localization`, `app_shared`, `app_theme` | pass |
-| `flutter test` in `desktop_app`, `calculator` | pass |
+| `flutter test` in `desktop_app`, `calculator`, `speed_test` | pass |
 | `flutter build linux --debug` in `apps/desktop_app` | pass |
 | `flutter build linux --debug` in `apps/calculator` | pass |
+| `flutter build linux --debug` in `apps/speed_test` | pass |
+| Live Fast.com run from India | 140.7 Mbps down / 94.3 Mbps up |
 
 The calculator test suite covers button and keyboard input (including numpad
 keys and focus restoration after tab switches), clearing, backspace, inline
@@ -280,3 +334,6 @@ restart, angle-unit evaluation, responsive layout at 360×600 and 1200×800, the
 rail/bar breakpoint, and theme switching. `app_theme` is covered separately:
 the JSON payload, local persistence, source-over-store precedence, remote
 apply without echo, sink publishing, reset, and the scope/builder widget wiring.
+The speed test suite covers the widget flow, cancel, history restart/clear,
+profile persistence, narrow layout, bandwidth formatting, and failover before
+and after a measurement starts.

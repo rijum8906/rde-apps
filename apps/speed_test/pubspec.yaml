@@ -1,0 +1,36 @@
+name: speed_test
+description: A network speed test for Linux built on the workspace.
+publish_to: none
+version: 1.0.0+1
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
+
+dependencies:
+  app_routing:
+    path: ../../packages/app_routing
+  app_shared:
+    path: ../../packages/app_shared
+  app_theme:
+    path: ../../packages/app_theme
+  bloc: ^9.2.1
+  core:
+    path: ../../packages/core
+  design_system:
+    path: ../../packages/design_system
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.1
+  meta: ^1.19.0
+  window_manager: ^0.5.2
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^11.0.0
+
+flutter:
+  uses-material-design: true
